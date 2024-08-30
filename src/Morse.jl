@@ -1,7 +1,7 @@
 using LinearAlgebra
 
 export Morse, energy, get_fundamentals, get_transition_angfrequency, get_transition_frequency, get_transition_wvn
-export get_dipole, compute_wfn, transition_dipole, transition_dipole_matrix, transition_energy_matrix
+export get_dipole, compute_wfn, transition_dipole, transition_dipole_matrix, transition_energy_matrix, potential
 
 struct Morse{T}
     redmass::T
@@ -10,8 +10,6 @@ struct Morse{T}
     re::T
     De::T
     a::T
-    μ0::T
-    ζ::T
     nmax::Int
     λ::T
 end
@@ -19,7 +17,7 @@ end
 """
     mA and mB are the masses of the atoms A and B in a.m.u
 """
-function Morse(;mA, mB, ν, νχ, re, De, μ0, ζ)
+function Morse(;mA, mB, ν, νχ, re, De)
 
     c = CODATA2018.SpeedOfLightInVacuum
     h = CODATA2018.PlanckConstant
@@ -47,9 +45,7 @@ function Morse(;mA, mB, ν, νχ, re, De, μ0, ζ)
                 ustrip(u"cm^-1", νχ),
                 ustrip(u"Å", re), 
                 ustrip(u"eV", De), 
-                ustrip(u"Å^-1", a), 
-                upreferred(μ0/e), # μe is expressed in terms of the elementary charge
-                ustrip(u"Å^-4", ζ), nmax, λ)
+                ustrip(u"Å^-1", a), nmax, λ)
 end
 
 """
@@ -58,6 +54,14 @@ end
 """
 function energy(M::Morse{T}, n) where T
     return M.ν * (n + 0.5) - M.νχ * (n + 0.5)^2
+end
+
+"""
+# potential(M::Morse{T}, r)
+    Computes the Morse potential energy (in cm⁻¹) at the displacement r (in Å)
+"""
+function potential(M::Morse{T}, r) where T
+    return eV2cm * M.De * (1 - exp(-M.a*(r-M.re)))^2
 end
 
 """
@@ -85,10 +89,6 @@ function get_transition_angfrequency(M::Morse{T}, i, j) where T
     return 2π*get_transition_frequency(M, i, j)
 end
 
-function get_dipole(M::Morse{T}, r) where T
-    return M.μ0 * r * exp(-M.ζ * r^4)
-end
-
 """
 # compute_wfn(M::Morse{T}, n, rvals)
 
@@ -108,12 +108,13 @@ function compute_wfn(M::Morse{T}, n, rvals) where T
         out[i] = z^(M.λ - n - 0.5) * exp(-0.5*z) * laguerre(α, n, z)
     end
 
-    if abs(out[end]) > 1e-6
-        @warn "|Ψ|² = ($(out[end])) > 1e-6 at the end of the chosen interval! This may raise integration errors"
-    elseif abs(out[1]) > 1e-6
-        @warn "|Ψ|² = ($(out[1])) > 1e-6 at the beginning of the chosen interval! This may raise integration errors"
-    end
     normalize!(out)
+    if abs(out[end]) > 1e-6
+        @warn "Ψ = ($(out[end])) > 1e-6 at the end of the chosen interval! This may raise integration errors"
+    end
+    if abs(out[1]) > 1e-6
+        @warn "Ψ = ($(out[1])) > 1e-6 at the beginning of the chosen interval! This may raise integration errors"
+    end
 
     return out
 end
@@ -141,29 +142,29 @@ function laguerre(a, n, x)
 end
 
 """
-    transition_dipole(M, i, j)
-    transition_dipole(M, i, j, rvals)
+    transition_dipole(df, M, i, j)
+    transition_dipole(df, M, i, j, rvals)
 
-Computes the transition dipole moment ⟨i|μ|j⟩ for the Morse system `M`. `rvals` is the
-integration interval for the morse function. If omitted, the function `find_rvals` will
-be used to determine the minimal range.
+Computes the transition dipole moment ⟨i|μ|j⟩ for the Morse system `M` using the dipole
+function `df` with `rvals` as the integration interval for the morse function. 
+If `rvals` is omitted, the function `find_rvals` will be used to determine the minimal range.
 """
-function transition_dipole(M::Morse{T}, i, j, rvals) where T
+function transition_dipole(df, M::Morse{T}, i, j, rvals) where T
 
     ψ1 = compute_wfn(M, i, rvals)
     ψ2 = compute_wfn(M, j, rvals)
 
     for i in eachindex(rvals)
-        ψ2[i] *= get_dipole(M, rvals[i])
+        ψ2[i] *= df(rvals[i])
     end
 
     return dot(ψ1, ψ2)
 end
 
-function transition_dipole(M::Morse{T}, i, j) where T
+function transition_dipole(df, M::Morse{T}, i, j) where T
     # Find appropriate range for integration
     rvals = find_rvals(M, max(i,j))
-    transition_dipole(M, i, j, rvals)
+    transition_dipole(df, M, i, j, rvals)
 end
 
 """
@@ -197,14 +198,16 @@ function find_rvals(M::Morse{T}, n) where T
     return 0.0:0.01:rmax
 end
 
-function transition_dipole_matrix(M::Morse{T}; overtones=true) where T
+function transition_dipole_matrix(df, M::Morse{T}; overtones=true, rvals=nothing) where T
 
     V = zeros(M.nmax+1, M.nmax+1)
+
+    findr = isnothing(rvals)
 
     if overtones
         for i = 1:(M.nmax+1)
             for j = i:(M.nmax+1)
-                V[i,j] = transition_dipole(M, i-1, j-1)
+                V[i,j] = findr ? transition_dipole(df, M, i-1, j-1) : transition_dipole(df, M, i-1, j-1, rvals)
                 V[j,i] = V[i,j]
             end
         end
@@ -213,7 +216,7 @@ function transition_dipole_matrix(M::Morse{T}; overtones=true) where T
     else
         for i = 1:(M.nmax)
             j = i+1
-            V[i,j] = transition_dipole(M, i-1, j-1)
+            V[i,j] = findr ? transition_dipole(df, M, i-1, j-1) : transition_dipole(df, M, i-1, j-1, rvals)
             V[j,i] = V[i,j]
         end
 

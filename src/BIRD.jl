@@ -10,6 +10,7 @@ const ħ = ustrip(u"J*s", CODATA2018.PlanckConstant/(2π)) # ħ in J*s
 const k = ustrip(u"J*K^-1", CODATA2018.BoltzmannConstant) #k_b in J/K
 const c = ustrip(u"Å/s", CODATA2018.SpeedOfLightInVacuum) # c in Å/s
 const c_cm = ustrip(u"cm/s", CODATA2018.SpeedOfLightInVacuum) # c in Å/s
+const eV2cm = 8065.54393734921
 
 """
     ν2ω(ν)

@@ -5,14 +5,22 @@ function spontaneous_emission_rate(D, ω, μ)
 end
 
 function absorption_rate(D, T, ω, μ)
-    ω * μ^2 * π / (3*ε0*ħ) * D * (1 / (1 - exp(-ħ*ω/(k*T))))
+    # kabs = kstim
+    ω * μ^2 * π / (3*ε0*ħ) * D * (1 / (exp(ħ*ω/(k*T)) - 1))
 end
 
 function stimulated_emission_rate(D, T, ω, μ)
     ω * μ^2 * π / (3*ε0*ħ) * D * (1 / (exp(ħ*ω/(k*T)) - 1))
 end
 
-function get_transport_matrix(E, V, D, T; kloss=1e4)
+function get_transport_matrix(df, m::Morse{X}, T; kloss=1e8) where X
+    E = transition_energy_matrix(m)
+    V = transition_dipole_matrix(df, m)
+    D = get_DOS_matrix(E)
+    return get_transport_matrix(E, V, D, T; kloss=kloss)
+end
+
+function get_transport_matrix(E, V, D, T; kloss=1e8)
     
     N = size(E,1)
     # Intialize the transport matrix
