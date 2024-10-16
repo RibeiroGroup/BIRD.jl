@@ -98,7 +98,7 @@ The evaluation uses the formula found [here.](https://en.wikipedia.org/wiki/Mors
 """
 function compute_wfn(M::Morse{T}, n, rvals) where T
 
-    out = zeros(length(rvals))
+    out = zeros(T, length(rvals))
 
     for i in eachindex(rvals)
         r = rvals[i]
@@ -200,7 +200,7 @@ end
 
 function transition_dipole_matrix(df, M::Morse{T}; overtones=true, rvals=nothing) where T
 
-    V = zeros(M.nmax+1, M.nmax+1)
+    V = zeros(T, M.nmax+1, M.nmax+1)
 
     findr = isnothing(rvals)
 
@@ -225,7 +225,7 @@ function transition_dipole_matrix(df, M::Morse{T}; overtones=true, rvals=nothing
 end
 
 function transition_energy_matrix(M::Morse{T}) where T
-    E = zeros(M.nmax+1, M.nmax+1)
+    E = zeros(T, M.nmax+1, M.nmax+1)
 
     for i = 1:(M.nmax+1)
         for j = i:(M.nmax+1)
@@ -235,4 +235,23 @@ function transition_energy_matrix(M::Morse{T}) where T
     end
 
     return E
+end
+
+function get_continuum_states(m::Morse; N=2000, rmin=0.0, rmax=30.0)
+
+    # Potential energy function for the numerov procedure, in cm⁻¹
+    Vf(x) = potential(m, x)
+
+    # Prefactor so units work out - output of numerov will be cm⁻¹
+    pf = get_wvn_prefactor(u"Å", m.redmass * PhysicalConstants.CODATA2018.AtomicMassConstant)
+
+    # Get energies and wavefunctions from numerov
+    println("Running Numerov...")
+    e, C = numerov(Vf, N, rmin, rmax, pf)
+    println("Done!")
+
+    # Compute dipole over the grid
+    rvals = range(start=rmin, stop=rmax, length=N)
+
+    return rvals, e, C
 end

@@ -24,10 +24,10 @@ Keyword arguments L, νM, g are necessary depending on the `regime`:
 
 These keywords are unused if the corresponding `regime` does not require it. 
 """
-function get_DOS_matrix(E; L=20000, νM=3000, g=200, regime=0)
+function get_DOS_matrix(E::Matrix{T}; L=20000, νM=3000, g=200, regime=0) where T
 
     N = size(E, 1)
-    DOS = zeros(N, N)
+    DOS = zeros(T, N, N)
 
     f(ω, L, νM, g) = if regime == 0
         return D0(ω)
@@ -85,21 +85,21 @@ function Dp(ω, L, ωM, g; verbose=false)
     # Print function for debbuging
     printif(t) = verbose ? println(t) : nothing
 
-    printif(repeat('-', 30))
-    printif("• Input")
-    printif("Probing Frequency:")
-    printif("ω: $(round(ω*1e-12, digits=2)) THz")
-    printif("ν: $(round(ω2ν(ω), digits=2)) cm⁻¹")
-    printif("\nMatter Frequency:")
-    printif("ωM: $(round(ωM*1e-12, digits=2)) THz")
-    printif("νM: $(round(ω2ν(ωM), digits=2)) cm⁻¹")
-    printif("\nCoupling Strength:")
-    printif("g: $(round(g*1e-12, digits=2)) THz")
-    printif("νM: $(round(ω2ν(g), digits=2)) cm⁻¹")
-    printif("\nCavity:")
-    printif("Length: $(L*1e-8) cm - $(L*1e-4) μm - $(L) Å")
-    printif("Cutoff Energy: $(round(c*π/L*1e-12, digits=2)) THz - $(round(1/(2*L*1e-8), digits=2)) cm⁻¹")
-    printif(repeat('-', 30))
+    #printif(repeat('-', 30))
+    #printif("• Input")
+    #printif("Probing Frequency:")
+    #printif("ω: $(round(ω*1e-12, digits=2)) THz")
+    #printif("ν: $(round(ω2ν(ω), digits=2)) cm⁻¹")
+    #printif("\nMatter Frequency:")
+    #printif("ωM: $(round(ωM*1e-12, digits=2)) THz")
+    #printif("νM: $(round(ω2ν(ωM), digits=2)) cm⁻¹")
+    #printif("\nCoupling Strength:")
+    #printif("g: $(round(g*1e-12, digits=2)) THz")
+    #printif("νM: $(round(ω2ν(g), digits=2)) cm⁻¹")
+    #printif("\nCavity:")
+    #printif("Length: $(L*1e-8) cm - $(L*1e-4) μm - $(L) Å")
+    #printif("Cutoff Energy: $(round(c*π/L*1e-12, digits=2)) THz - $(round(1/(2*L*1e-8), digits=2)) cm⁻¹")
+    #printif(repeat('-', 30))
 
     # Convert L from Å to cm
     L = L * 1e-8
@@ -115,15 +115,15 @@ function Dp(ω, L, ωM, g; verbose=false)
     if ωc2 < 0.0
         SGl = "$(round(ω2ν(ωM)))"
         SG = "$(round(ω2ν(sqrt(ωM^2 + g^2))))"
-        printif("Probed frequency ($(round(ω2ν(ω),digits=2)) cm⁻¹ is inside the stop gap region ($SGl - $SG ) cm⁻¹")
+        #printif("Probed frequency ($(round(ω2ν(ω),digits=2)) cm⁻¹ is inside the stop gap region ($SGl - $SG ) cm⁻¹")
         return 0.0
     end
 
     ωc = sqrt(ωc2)
 
-    printif("\nCavity Energy for the input frequency:")
-    printif("ωc: $(round(ωc*1e-12, digits=2)) THz")
-    printif("νc: $(round(ω2ν(ωc), digits=2)) cm⁻¹")
+    #printif("\nCavity Energy for the input frequency:")
+    #printif("ωc: $(round(ωc*1e-12, digits=2)) THz")
+    #printif("νc: $(round(ω2ν(ωc), digits=2)) cm⁻¹")
 
     out = 0.0
     # Condition: cavity cutoff energy can't be larger than the desired ω
@@ -156,7 +156,7 @@ function Dp(ω, L, ωM, g; verbose=false)
         q0 = m*π/L
     end
 
-    printif("Number of bands contributing to the DOS at ω = $(round(ω*1e-12, digits=2)) THz (ν = $(round(ω2ν(ω),digits=2)) cm⁻¹) = $(m)")
+    #printif("Number of bands contributing to the DOS at ω = $(round(ω*1e-12, digits=2)) THz (ν = $(round(ω2ν(ω),digits=2)) cm⁻¹) = $(m)")
     # Convert output from s/cm^3 to s/Å^3
     return out * 1e-24
 end

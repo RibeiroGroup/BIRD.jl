@@ -30,6 +30,7 @@ function ω2ν(ω)
     return ω / (2π*c_cm)
 end
 
+include("Numerov.jl")
 include("Morse.jl")
 include("DensityofStates.jl")
 include("Rates.jl")
