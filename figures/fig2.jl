@@ -45,8 +45,8 @@ function plot_dos()
     re=1.595u"Å", De=2.641u"eV")
 
     path = joinpath(@__DIR__, "../QMcalcs/LiH/dip/dips.h5")
-    r = vcat(0.0, h5read(path, "rvals"))
-    dip = 0.529177 .* vcat(0.0, h5read(path, "dips")) # Convert from e⋅bohr to e⋅Å
+    r = vcat(0.0, h5read(path, "rvals")[4:end])
+    dip = 0.529177 .* vcat(0.0, h5read(path, "dips")[4:end]) # Convert from e⋅bohr to e⋅Å
     # Get interpolation
     itp = interpolate((r,), dip, Gridded(Linear()))
     # Dipole function. Return 0 for out of bounds
@@ -99,7 +99,7 @@ function plot_dos()
     println(k0)
 
     # Most important transitions according to the sensitivity analysis
-    overt_idx = [(16, 23), (15, 23), (14, 23), (20, 23), (17, 23), (19, 23), (13, 23)]
+    overt_idx = [(16, 23), (15, 23), (14, 23), (17, 23), (19, 23), (13, 23)]
     overt_wvn = [get_transition_wvn(hf, l[1], l[2]) for l in overt_idx]
 
     wc_dos!(axs[1], 3.03, E, V, overt_wvn, overt_idx, k0=k0, T=4000, letter='a')
@@ -108,7 +108,7 @@ function plot_dos()
     fig
 end
 
-function wc_dos!(ax, L, E, V, transitions, transitions_labels; T=300, transition_label_y=0.25, k0, letter)
+function wc_dos!(ax, L, E, V, transitions, transitions_labels; T=300, transition_label_y=0.02, k0, letter)
 
     # Conversion factor
     μm2Å = 1e4
@@ -144,8 +144,8 @@ function wc_dos!(ax, L, E, V, transitions, transitions_labels; T=300, transition
     # Add label to vertical lines
     for k in eachindex(transitions)
         (i,j) = transitions_labels[k]
-        ν = transitions[k]
-        text!(ax, ν, transition_label_y, text=L"%$i \rightarrow %$j", align=(:center, :bottom), fontsize=15, rotation=π/2)
+        ν = transitions[k] + 30
+        text!(ax, ν, transition_label_y, text=L"%$i \rightarrow %$j", align=(:left, :top), fontsize=15, rotation=π/2)
     end
 
     kck0 = "$(round(kc/k0, digits=2))"

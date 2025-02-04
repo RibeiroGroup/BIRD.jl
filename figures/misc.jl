@@ -35,96 +35,12 @@ function find_halflife(m, T)
 
 end
 
-function perturbation_analysis(; δ=1.2, T=300)
-    # Define a Morse potential. Parameters are taken from Kaluza and Muckerman 1993 (https://doi.org/10.1063/1.466305)
-    # Note that μ0 from the reference has been converted from e.s.u to C using 1 e.s.u = 3.335640951982e-10 C
-    m = Morse(mA=1u"u", mB=19u"u", 
-    ν=4138.0u"cm^-1", νχ=86.70u"cm^-1", 
-    re=0.926u"Å", De=6.121646u"eV")
-
-    perturbation_analysis(m; δ=δ, T=300)
-end
-
-function perturbation_analysis(dip, m; δ=1.2, T=300)
-
-    # Get matrix with transition energies
-    E = transition_energy_matrix(m)
-
-    hf_dipole(r) = 0.4541416928679838 * r * exp(-0.081616*r^4) 
-    # Get matrix with transition dipole elements
-    V = transition_dipole_matrix(dip, m)
-
-    # Get free space density of states (regime = 0)
-    DOS = get_DOS_matrix(E, regime=0)
-
-    K = find_pertbation_matrix(E, V, DOS, T=T, δ=δ)
-
-    l, Kl = _linearize_offdiagonal(K)
-    pe = reverse(sortperm(Kl))
-
-    for k = 1:20
-        (i,j) = l[pe][k]
-        kenh = Kl[pe][k]
-        wvn = BIRD.get_transition_wvn(m, i, j)
-        println("$i -> $j  --- $kenh  || $wvn")
-    end
-
-    fig, ax, hm = heatmap(0:23, 0:23, K .- 1)
-    Colorbar(fig[:, end+1], hm)
-    fig
-end
-
 function hmap(M)
     fig, ax, hm = heatmap(0:23, 0:23, M)
     Colorbar(fig[:, end+1], hm)
     fig
 end
 
-function find_pertbation_matrix(E, V, DOS; δ=1.2, T=300)
-
-    # Get free space rate
-    J0 = get_transport_matrix(E, V, DOS, T)
-    k0 = eigmin(J0)
-    #k0 = log(2)/(find_halflife(J0))
-
-    N = size(E,1)
-
-    K = similar(E)
-    K .= 0.0
-
-    for i in 1:N
-        K[i,i] = 1.0
-        for j in (i+1):N
-            DOS[i,j] *= δ
-            DOS[j,i] *= δ
-            J = get_transport_matrix(E, V, DOS, T)
-            K[i,j] = eigmin(J) / k0
-            K[j,i] = K[i,j]
-            DOS[i,j] /= δ
-            DOS[j,i] /= δ
-        end
-    end
-
-    return K
-end
-
-function _linearize_offdiagonal(M)
-    N = size(M,1)
-    r = 0:(N-1)
-    labels = [(i,j) for i = r, j = r]
-    m = [i < j for i = r, j = r]
-
-    return labels[m], M[m]
-end
-
-function _linearize_offdiagonal(M1, M2)
-    N = size(M,1)
-    r = 0:(N-1)
-    labels = [(i,j) for i = r, j = r]
-    m = [i < j for i = r, j = r]
-
-    return labels[m], M1[m], M2[m]
-end
 
 function find_eq_composition()
 
