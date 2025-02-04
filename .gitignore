@@ -25,3 +25,6 @@ Manifest.toml
 *.tmp
 .DS_Store
 Thumbs.db
+
+# Images
+*.png
