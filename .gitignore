@@ -1,0 +1,27 @@
+# Compiled files and caches
+*.ji
+*.dll
+*.so
+*.dylib
+
+# Julia package environments
+Manifest.toml
+.julia/
+
+# REPL history
+.julia_history
+
+# Jupyter notebooks
+.ipynb_checkpoints/
+
+# VS Code and other IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Temporary and backup files
+*.bak
+*.tmp
+.DS_Store
+Thumbs.db
