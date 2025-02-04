@@ -30,4 +30,4 @@ Thumbs.db
 *.png
 *.svg
 
-./QMcalcs/*
+QMcalcs/*
