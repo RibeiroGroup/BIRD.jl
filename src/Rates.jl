@@ -65,7 +65,7 @@ end
 
 function compute_kploss(df, Df, m::Morse, T; N=2000, rmin=0.0, rmax=30.0)
     rvals, e, C = get_continuum_states(m, N=N, rmin=rmin, rmax=rmax)
-    compute_kploss(df, Df, nmax, rvals, e, C, T)
+    compute_kploss(df, Df, m.nmax, rvals, e, C, T)
 end
 
 function compute_kploss(df, Df, nmax, rvals, e, C, T)
@@ -86,7 +86,7 @@ function compute_kploss(df, Df, nmax, rvals, e, C, T)
         for j in (nmax+2):length(rvals)
             # Compute transition dipole moment 
             μ = dot(ψxd, C[:,j])
-            # Compute transitient angular frequency
+            # Compute transition angular frequency
             ω = ν2ω(e[j] - e[i])
             # Density of state at that frequency
             D = Df(ω)
