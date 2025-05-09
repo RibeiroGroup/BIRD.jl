@@ -63,39 +63,71 @@ function get_transport_matrix(E, V, D, T; kloss=1e8, kploss=false)
     return J
 end
 
-function compute_kploss(df, Df, m::Morse, T; N=2000, rmin=0.0, rmax=30.0)
+function compute_kploss(dipole_function, DOS_function, m::Morse, T; N=2000, rmin=0.0, rmax=30.0)
     rvals, e, C = get_continuum_states(m, N=N, rmin=rmin, rmax=rmax)
-    compute_kploss(df, Df, m.nmax, rvals, e, C, T)
+    compute_kploss(dipole_function, DOS_function, m.nmax, rvals, e, C, T)
 end
 
-function compute_kploss(df, Df, nmax, rvals, e, C, T)
+function compute_kploss(dipole_function, DOS_function, nmax, rvals, e, C, T)
+    μAi = continuum_transition_dipoles(dipole_function, nmax, rvals, e, C)
+    compute_kploss(DOS_function, e, μAi, T)
+end
 
-    dips = df.(rvals)
+function continuum_transition_dipoles(dipole_function, nmax, rvals, e, C)
+
+    # Compute dipole moments over the grid values
+    dips = dipole_function.(rvals)
 
     # Allocate intermediate array
     ψxd = zeros(length(rvals))
 
-    # Allocate output array
-    phot_losses = zeros(nmax+1)
+    # Number of bound states
+    Nbound = nmax + 1
 
-    # Loop over bound states
-    for i in eachindex(phot_losses)
+    # Number of continuum states
+    Ncontinuum = length(e) - Nbound
+
+    # Allocate output Matrix
+    μAi = zeros(Ncontinuum, Nbound)
+
+    # Loop over bound states - i
+    for i in axes(μAi, 2)
         ψxd .= C[:,i] .* dips
 
-        # Loop over continuum states
-        for j in (nmax+2):length(rvals)
+        # Loop over continuum states - A
+        for A in axes(μAi, 1)
+            # Compute index of the continuum state
+            j = A + Nbound
             # Compute transition dipole moment 
-            μ = dot(ψxd, C[:,j])
+            μAi[A,i] = dot(ψxd, C[:,j])
+        end
+    end
+
+    return μAi
+end
+
+function compute_kploss(DOS_function, e, μAi, T)
+
+    # Allocate output array
+    phot_losses = zeros(size(μAi, 2))
+
+    # Loop over bound states
+    for i in axes(μAi, 2)
+
+        # Loop over continuum states
+        for A in axes(μAi, 1)
+
+            # Compute index of the continuum state
+            j = A + size(μAi, 2)
             # Compute transition angular frequency
             ω = ν2ω(e[j] - e[i])
             # Density of state at that frequency
-            D = Df(ω)
+            D = DOS_function(ω)
 
             # Compute and accumulate absorption rates (will sum over all unbounded states)
-            phot_losses[i] += absorption_rate(D, T, ω, μ)
+            phot_losses[i] += absorption_rate(D, T, ω, μAi[A,i])
         end
     end
 
     return phot_losses
 end
-
